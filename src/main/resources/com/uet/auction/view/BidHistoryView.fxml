@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.chart.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.uet.auction.client.controller.BidHistoryController"
+      styleClass="glass-panel" stylesheets="@../style/style.css"
+      spacing="15" alignment="CENTER" prefHeight="500.0" prefWidth="700.0">
+
+    <padding>
+        <Insets top="20" right="20" bottom="20" left="20"/>
+    </padding>
+
+    <Label fx:id="lblProductName" text="Tên sản phẩm" style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #38BDF8;" />
+    <Label fx:id="lblCurrentPrice" text="Giá hiện tại: 0" style="-fx-font-size: 18px; -fx-text-fill: #F1F5F9;" />
+
+    <LineChart fx:id="priceChart" prefHeight="350.0" prefWidth="650.0" VBox.vgrow="ALWAYS" styleClass="chart-plot-background">
+        <xAxis>
+            <NumberAxis fx:id="xAxis" side="BOTTOM" autoRanging="true"/>
+        </xAxis>
+        <yAxis>
+            <NumberAxis fx:id="yAxis" side="LEFT" autoRanging="true"/>
+        </yAxis>
+    </LineChart>
+
+</VBox>
