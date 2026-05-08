@@ -59,4 +59,14 @@ public class LoginController {
             e.printStackTrace();
         }
     }
+
+    @FXML
+    public void onRegisterClick() {
+        try {
+            Stage stage = (Stage) usernameField.getScene().getWindow();
+            com.uet.auction.client.util.SceneManager.switchScene(stage, "/com/uet/auction/view/RegisterView.fxml");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }

@@ -79,7 +79,7 @@ public class ProductDAO {
     }
     // Thêm vào trong class ProductDAO
     public void closeExpiredAuctions() {
-        String sql = "UPDATE products SET status = 'CLOSED' WHERE end_time <= NOW() AND status = 'OPEN'";
+        String sql = "UPDATE products SET status = 'FINISHED' WHERE end_time <= NOW() AND status = 'OPEN'";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             int affectedRows = pstmt.executeUpdate();
@@ -93,16 +93,19 @@ public class ProductDAO {
     // Trong com.uet.auction.server.DAO.ProductDAO
 
     // 1. Dành cho Seller: Thêm sản phẩm với trạng thái PENDING
-    public boolean addProduct(String name, double startingPrice, String sellerName, LocalDateTime startTime, LocalDateTime endTime) {
-        String sql = "INSERT INTO products (name, starting_price, seller_name, start_time, end_time, status) VALUES (?, ?, ?, ?, ?, 'PENDING')";
+    public boolean addProduct(String name, String description, String category, double startingPrice, String sellerName, LocalDateTime startTime, LocalDateTime endTime) {
+        String sql = "INSERT INTO products (name, description, category, starting_price, current_price, seller_name, start_time, end_time, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PENDING')";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, name);
-            pstmt.setDouble(2, startingPrice);
-            pstmt.setString(3, sellerName);
-            pstmt.setTimestamp(4, Timestamp.valueOf(startTime));
-            pstmt.setTimestamp(5, Timestamp.valueOf(endTime));
+            pstmt.setString(2, description);
+            pstmt.setString(3, category);
+            pstmt.setDouble(4, startingPrice);
+            pstmt.setDouble(5, startingPrice); // current_price initially equals starting_price
+            pstmt.setString(6, sellerName);
+            pstmt.setTimestamp(7, Timestamp.valueOf(startTime));
+            pstmt.setTimestamp(8, Timestamp.valueOf(endTime));
 
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {

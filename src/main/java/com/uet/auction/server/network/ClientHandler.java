@@ -72,11 +72,13 @@ public class ClientHandler implements Runnable {
                     case "ADD_PRODUCT":
                         JsonArray addData = dataElement.getAsJsonArray();
                         Object[] parsedData = new Object[]{
-                                addData.get(0).getAsString(),
-                                addData.get(1).getAsDouble(),
-                                addData.get(2).getAsString(),
-                                LocalDateTime.parse(addData.get(3).getAsJsonObject().get("date").getAsString() + "T" + addData.get(3).getAsJsonObject().get("time").getAsJsonObject().get("hour").getAsString() + ":" + addData.get(3).getAsJsonObject().get("time").getAsJsonObject().get("minute").getAsString()), // Needs careful parsing depending on how client serializes LocalDateTime
-                                LocalDateTime.parse(addData.get(4).getAsJsonObject().get("date").getAsString() + "T" + addData.get(4).getAsJsonObject().get("time").getAsJsonObject().get("hour").getAsString() + ":" + addData.get(4).getAsJsonObject().get("time").getAsJsonObject().get("minute").getAsString())
+                                addData.get(0).getAsString(), // name
+                                addData.get(1).getAsString(), // description
+                                addData.get(2).getAsString(), // category
+                                addData.get(3).getAsDouble(), // price
+                                addData.get(4).getAsString(), // sellerName
+                                LocalDateTime.parse(addData.get(5).getAsJsonObject().get("date").getAsString() + "T" + addData.get(5).getAsJsonObject().get("time").getAsJsonObject().get("hour").getAsString() + ":" + addData.get(5).getAsJsonObject().get("time").getAsJsonObject().get("minute").getAsString()), // startTime
+                                LocalDateTime.parse(addData.get(6).getAsJsonObject().get("date").getAsString() + "T" + addData.get(6).getAsJsonObject().get("time").getAsJsonObject().get("hour").getAsString() + ":" + addData.get(6).getAsJsonObject().get("time").getAsJsonObject().get("minute").getAsString()) // endTime
                         };
                         response = auctionService.addProduct(parsedData);
                         sendResponse(response);
@@ -106,9 +108,13 @@ public class ClientHandler implements Runnable {
                         break;
                     case "PLACE_BID":
                         JsonArray bidData = dataElement.getAsJsonArray();
-                        response = auctionService.placeBid(bidData.get(0).getAsInt(), bidData.get(1).getAsString(), bidData.get(2).getAsDouble());
+                        int productId = bidData.get(0).getAsInt();
+                        response = auctionService.placeBid(productId, bidData.get(1).getAsString(), bidData.get(2).getAsDouble());
                         sendResponse(response);
                         if (response.isSuccess()) {
+                            // Observer Pattern: Only notify clients watching this specific product
+                            SocketServer.notifyObservers(productId, new AuctionResponse(true, "UPDATE_PRICE", null));
+                            // Optional: also broadcast to refresh global lists
                             SocketServer.broadcast(new AuctionResponse(true, "UPDATE_PRICE", null));
                         }
                         break;

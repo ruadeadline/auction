@@ -30,12 +30,22 @@ public class AuctionService {
     public AuctionResponse addProduct(Object[] data) {
         try {
             String name = (String) data[0];
-            double price = (Double) data[1];
-            String sellerName = (String) data[2];
-            LocalDateTime startTime = (LocalDateTime) data[3];
-            LocalDateTime endTime = (LocalDateTime) data[4];
+            String description = (String) data[1];
+            String categoryStr = (String) data[2];
+            double price = (Double) data[3];
+            String sellerName = (String) data[4];
+            LocalDateTime startTime = (LocalDateTime) data[5];
+            LocalDateTime endTime = (LocalDateTime) data[6];
 
-            boolean success = productDAO.addProduct(name, price, sellerName, startTime, endTime);
+            com.uet.auction.server.model.ItemCategory category = com.uet.auction.server.model.ItemCategory.valueOf(categoryStr);
+            
+            // Factory Pattern & Polymorphism requirement
+            com.uet.auction.server.model.Item item = com.uet.auction.server.model.ItemFactory.createItem(
+                category, name, description, java.math.BigDecimal.valueOf(price), sellerName
+            );
+            item.printInfo(); // Demonstrates Polymorphism
+
+            boolean success = productDAO.addProduct(name, description, categoryStr, price, sellerName, startTime, endTime);
             if (success) {
                 return new AuctionResponse(true, "ADD_PRODUCT_RESULT", "Gửi yêu cầu đăng bán thành công, chờ Admin duyệt!");
             }
@@ -46,24 +56,44 @@ public class AuctionService {
     }
 
     public AuctionResponse placeBid(int productId, String bidderName, double bidAmount) {
-        String sql = "UPDATE products SET current_price = ?, owner_name = ? WHERE id = ? AND status = 'OPEN' AND current_price < ?";
+        String selectSql = "SELECT current_price, status FROM products WHERE id = ?";
+        String updateSql = "UPDATE products SET current_price = ?, owner_name = ? WHERE id = ?";
+
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement selectStmt = conn.prepareStatement(selectSql)) {
+            
+            selectStmt.setInt(1, productId);
+            try (java.sql.ResultSet rs = selectStmt.executeQuery()) {
+                if (rs.next()) {
+                    double currentPrice = rs.getDouble("current_price");
+                    String status = rs.getString("status");
 
-            pstmt.setDouble(1, bidAmount);
-            pstmt.setString(2, bidderName);
-            pstmt.setInt(3, productId);
-            pstmt.setDouble(4, bidAmount);
+                    if (!"OPEN".equals(status)) {
+                        throw new com.uet.auction.common.exception.AuctionClosedException("Phiên đấu giá đã đóng hoặc chưa mở!");
+                    }
+                    if (bidAmount <= currentPrice) {
+                        throw new com.uet.auction.common.exception.InvalidBidException("Giá đặt phải lớn hơn giá hiện tại!");
+                    }
 
-            int rowsAffected = pstmt.executeUpdate();
-            if (rowsAffected > 0) {
-                return new AuctionResponse(true, "BID_RESULT", "Đặt giá thành công!");
-            } else {
-                return new AuctionResponse(false, "BID_RESULT", "Đặt giá thất bại! Giá đã bị vượt qua hoặc phiên đóng.");
+                    try (PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {
+                        updateStmt.setDouble(1, bidAmount);
+                        updateStmt.setString(2, bidderName);
+                        updateStmt.setInt(3, productId);
+                        int rowsAffected = updateStmt.executeUpdate();
+                        if (rowsAffected > 0) {
+                            return new AuctionResponse(true, "BID_RESULT", "Đặt giá thành công!");
+                        }
+                    }
+                } else {
+                    return new AuctionResponse(false, "BID_RESULT", "Không tìm thấy sản phẩm!");
+                }
             }
+        } catch (com.uet.auction.common.exception.AuctionClosedException | com.uet.auction.common.exception.InvalidBidException ex) {
+            return new AuctionResponse(false, "BID_RESULT", ex.getMessage());
         } catch (Exception e) {
             e.printStackTrace();
-            return new AuctionResponse(false, "BID_RESULT", "Lỗi Server.");
+            return new AuctionResponse(false, "BID_RESULT", "Lỗi dữ liệu, lỗi kết nối Server.");
         }
+        return new AuctionResponse(false, "BID_RESULT", "Đặt giá thất bại!");
     }
 }
